@@ -15,12 +15,12 @@ class GeminiAiAdapter implements AiAdapter {
       // ).map((idea) => "${idea.trim()} ${request.category.name}").toList();
       // return ideas;
       return [
-        "Tarkov USEC Logo Hoodie",
-        "RDR2 Outlaws For Life Tee",
-        "Arc Raiders Graphic Tee",
-        "Tarkov BEAR Tactical Cap",
-        "RDR2 Arthur Morgan Hat",
-      ];
+        "Tarkov USEC",
+        "RDR2 Outlaws For Life",
+        "Arc Raiders Graphic",
+        "Tarkov BEAR Tactical",
+        "RDR2 Arthur Morgan",
+      ].map((ele) => "${ele.trim()} ${request.category.name}").toList();
     } catch (error) {
       // TODO: handle error
       print({'parent': 'GeminiAiAdapter.getGiftIdeas', 'error': error});
@@ -65,8 +65,8 @@ class GeminiAiAdapter implements AiAdapter {
 
   // transform response to list of ideas
   List<String> _parseResponse(Map<String, dynamic> responseData) {
-    final decodedResponse =
-        responseData['candidates'][0]['content']['parts'][0]['text'] as String;
+    if (responseData['success'] == false) return [];
+    final decodedResponse = responseData['text'] as String;
 
     final ideas = jsonDecode(decodedResponse) as List<dynamic>;
     return ideas.map((idea) => idea.toString()).toList();

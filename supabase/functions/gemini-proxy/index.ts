@@ -40,7 +40,19 @@ Deno.serve(async (req) => {
             }
         )
 
-        const data = await response.json()
+        const responseData = await response.json()
+        let data = {}
+        if (responseData['candidates'] && responseData['candidates'].length > 0 && responseData['candidates'][0]['content'] && responseData['candidates'][0]['content']['parts'] && responseData['candidates'][0]['content']['parts'].length > 0) {
+            data = {
+                success: true,
+                text: responseData['candidates'][0]['content']['parts'][0]['text'],
+            }
+        } else {
+            data = {
+                success: false,
+                text: ''
+            }
+        }
 
         return new Response(JSON.stringify(data), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },

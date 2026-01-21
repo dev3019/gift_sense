@@ -19,6 +19,7 @@ class AmazonProvider implements BaseProvider {
       final idea = ideas[index].replaceAll(' ', '+');
       final responseData = await _callApi(idea);
       return _parseResponse(responseData);
+      // return _parseResponse(Map());
     } catch (e) {
       print({'parent': 'AmazonProvider.search', 'error': e});
       return [];
@@ -34,7 +35,8 @@ class AmazonProvider implements BaseProvider {
   }
 
   List<GiftSearchItem> _parseResponse(Map<String, dynamic> responseData) {
-    final links = responseData['organic_results'] as List<dynamic>;
+    if (responseData['success'] == false) return [];
+    final links = responseData['results'] as List<dynamic>;
     // final links = [
     //   {
     //     "position": 1,
@@ -137,17 +139,26 @@ class AmazonProvider implements BaseProvider {
     //     ],
     //   },
     // ];
-    return links.map((link) {
-      final title =
-          (link['title'] ?? link['brand'] ?? 'Unknown Product') as String;
-      return GiftSearchItem(
-        title: title,
-        trimmedTitle: _trimTitle(title),
-        provider: name,
-        url: link['link_clean'] as String,
-        price: link['price'] as String,
-      );
-    }).toList();
+
+    return links
+        .map((link) {
+          final title = (link['title'] ?? link['brand'] ?? '').toString();
+          final price = (link['price'] ?? 'N/A').toString();
+          if (title.isEmpty || price == 'N/A') {
+            return null;
+          }
+          return GiftSearchItem(
+            title: title,
+            trimmedTitle: _trimTitle(title),
+            provider: name,
+            url: (link['link_clean']).toString(),
+            price: (link['price'] ?? '\$0.00').toString(),
+            ratings: (link['rating'] ?? '0').toString(),
+            reviews: link['reviews'] ?? 0,
+          );
+        })
+        .nonNulls
+        .toList();
   }
 
   String _trimTitle(String title) {

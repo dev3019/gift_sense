@@ -29,7 +29,20 @@ Deno.serve(async (req) => {
         })
 
         const response = await fetch(`https://serpapi.com/search.json?${params.toString()}`)
-        const data = await response.json()
+        const responseData = await response.json()
+
+        let data = {}
+        if (responseData['organic_results'] && responseData['organic_results'].length > 0) {
+            data = {
+                success: true,
+                results: responseData['organic_results']
+            }
+        } else {
+            data = {
+                success: false,
+                results: []
+            }
+        }
 
         return new Response(JSON.stringify(data), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },

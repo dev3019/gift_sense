@@ -45,12 +45,14 @@ class GiftSearchOrchestrator {
         age: request.age,
       ),
     );
-    print(ideas);
+
     // 2. Ask providers for links
     final items = <GiftSearchItem>[];
-    for (final provider in providers) {
-      final providerItems = await provider.search(ideas);
-      items.addAll(providerItems);
+    if(ideas.isNotEmpty) {
+      for (final provider in providers) {
+        final providerItems = await provider.search(ideas);
+        items.addAll(providerItems);
+      }
     }
 
     return GiftSearchResponse(items: items);
