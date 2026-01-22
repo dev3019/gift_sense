@@ -107,8 +107,8 @@ class _GiftPickerAppState extends State<GiftPickerApp> {
   }
 
   void _validateInput() async {
-    final enterdAge = int.tryParse(_ageTextController.text);
-    final validAge = enterdAge != null && enterdAge > 0;
+    final enteredAge = int.tryParse(_ageTextController.text);
+    final validAge = enteredAge != null && enteredAge > 0;
 
     if (_giftContextController.text.trim().isEmpty ||
         !validAge ||
@@ -137,7 +137,7 @@ class _GiftPickerAppState extends State<GiftPickerApp> {
           description: _giftContextController.text,
           category: _selectedCategory!,
           sex: _selectedSex!,
-          age: enterdAge,
+          age: enteredAge,
         ),
       ),
     );
@@ -153,7 +153,7 @@ class _GiftPickerAppState extends State<GiftPickerApp> {
         description: _giftContextController.text,
         category: _selectedCategory!,
         sex: _selectedSex!,
-        age: enterdAge,
+        age: enteredAge,
       ),
     );
     

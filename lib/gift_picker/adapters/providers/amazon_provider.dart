@@ -17,16 +17,16 @@ class AmazonProvider implements BaseProvider {
       int index = (randomizer.nextInt(ideas.length));
 
       final idea = ideas[index].replaceAll(' ', '+');
-      final responseData = await _callApi(idea);
-      return _parseResponse(responseData);
-      // return _parseResponse(Map());
+      final responseData = await callApi(idea);
+      return parseResponse(responseData);
+      // return parseResponse(Map());
     } catch (e) {
       print({'parent': 'AmazonProvider.search', 'error': e});
       return [];
     }
   }
 
-  Future<Map<String, dynamic>> _callApi(String query) async {
+  Future<Map<String, dynamic>> callApi(String query) async {
     final response = await SupabaseService.client.functions.invoke(
       'serp-amazon-search',
       body: {'query': query},
@@ -34,7 +34,7 @@ class AmazonProvider implements BaseProvider {
     return response.data as Map<String, dynamic>;
   }
 
-  List<GiftSearchItem> _parseResponse(Map<String, dynamic> responseData) {
+  List<GiftSearchItem> parseResponse(Map<String, dynamic> responseData) {
     if (responseData['success'] == false) return [];
     final links = responseData['results'] as List<dynamic>;
     // final links = [
@@ -152,7 +152,7 @@ class AmazonProvider implements BaseProvider {
             trimmedTitle: _trimTitle(title),
             provider: name,
             url: (link['link_clean']).toString(),
-            price: (link['price'] ?? '\$0.00').toString(),
+            price: price,
             ratings: (link['rating'] ?? '0').toString(),
             reviews: link['reviews'] ?? 0,
           );

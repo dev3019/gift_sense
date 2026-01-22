@@ -1,6 +1,9 @@
 # Cursor related
 .cursor/
 
+# Task tracking (local only)
+TASKS.md
+
 # Environment variables / secrets
 .env
 .env.*

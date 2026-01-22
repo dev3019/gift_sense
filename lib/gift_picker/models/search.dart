@@ -29,14 +29,15 @@ class GiftSearchItem {
     required this.provider,
     required this.url,
     required this.price,
-    this.ratings='0',
-    this.reviews=0,
+    this.ratings = '0',
+    this.reviews = 0,
   });
+
   final String title;
   final String trimmedTitle;
   final GiftSearchProvider provider;
   final String url;
   final String price;
-  final String? ratings;
-  final int? reviews;
+  final String ratings;
+  final int reviews;
 }

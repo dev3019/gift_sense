@@ -8,9 +8,9 @@ class GeminiAiAdapter implements AiAdapter {
   @override
   Future<List<String>> getGiftIdeas(GiftSearchRequest request) async {
     try {
-      final finishedPrompt = _createPrompt(request);
-      // final response = await _callApi(finishedPrompt);
-      // final ideas = _parseResponse(
+      final finishedPrompt = createPrompt(request);
+      // final response = await callApi(finishedPrompt);
+      // final ideas = parseResponse(
       //   response,
       // ).map((idea) => "${idea.trim()} ${request.category.name}").toList();
       // return ideas;
@@ -29,7 +29,7 @@ class GeminiAiAdapter implements AiAdapter {
   }
 
   // convert request to prompt
-  String _createPrompt(GiftSearchRequest request) {
+  String createPrompt(GiftSearchRequest request) {
     return '''You are a recommendation engine for gift ideas.
 
       Task:
@@ -55,7 +55,7 @@ class GeminiAiAdapter implements AiAdapter {
   }
 
   // make api call via Supabase edge function
-  Future<Map<String, dynamic>> _callApi(String prompt) async {
+  Future<Map<String, dynamic>> callApi(String prompt) async {
     final response = await SupabaseService.client.functions.invoke(
       'gemini-proxy',
       body: {'prompt': prompt},
@@ -64,7 +64,7 @@ class GeminiAiAdapter implements AiAdapter {
   }
 
   // transform response to list of ideas
-  List<String> _parseResponse(Map<String, dynamic> responseData) {
+  List<String> parseResponse(Map<String, dynamic> responseData) {
     if (responseData['success'] == false) return [];
     final decodedResponse = responseData['text'] as String;
 
