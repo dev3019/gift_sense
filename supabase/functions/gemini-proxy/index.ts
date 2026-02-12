@@ -20,6 +20,10 @@ function jsonResponse(
     });
 }
 
+function getErrorMessage(error: unknown): string {
+    return error instanceof Error ? error.message : String(error);
+}
+
 Deno.serve(async (req) => {
     // Handle CORS preflight requests
     if (req.method === 'OPTIONS') {
@@ -40,6 +44,10 @@ Deno.serve(async (req) => {
         }
 
         const api_key = Deno.env.get('GEMINI_API_KEY')
+        if (!api_key?.trim()) {
+            console.error('Gemini proxy env error: GEMINI_API_KEY is missing or empty');
+            return jsonResponse(503, { success: false, data: null, error: 'Service unavailable' });
+        }
 
         // Separate try/catch for fetch call
         let response: Response;
@@ -51,7 +59,7 @@ Deno.serve(async (req) => {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'x-goog-api-key': api_key!,
+                        'x-goog-api-key': api_key,
                     },
                     body: JSON.stringify({
                         contents: [
@@ -64,9 +72,13 @@ Deno.serve(async (req) => {
                     }),
                 }
             )
+            if (!response.ok) {
+                console.error('Gemini API HTTP error:', response.status, response.statusText);
+                return jsonResponse(503, { success: false, data: null, error: 'Service unavailable' });
+            }
             responseData = await response.json()
         } catch (fetchError) {
-            console.error('Gemini API fetch error:', fetchError);
+            console.error('Gemini API fetch error:', getErrorMessage(fetchError));
             return jsonResponse(503, { success: false, data: null, error: 'Service unavailable' });
         }
 
@@ -90,7 +102,7 @@ Deno.serve(async (req) => {
             return jsonResponse(503, { success: false, data: null, error: 'Service unavailable' });
         }
     } catch (error) {
-        console.error('Gemini proxy error:', error);
+        console.error('Gemini proxy error:', getErrorMessage(error));
 
         // Check if it's a JSON parsing error (which means bad request body)
         if (error instanceof SyntaxError) {

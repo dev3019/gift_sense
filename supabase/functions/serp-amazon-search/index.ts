@@ -20,6 +20,10 @@ function jsonResponse(
     });
 }
 
+function getErrorMessage(error: unknown): string {
+    return error instanceof Error ? error.message : String(error);
+}
+
 Deno.serve(async (req) => {
     // Handle CORS preflight requests
     if (req.method === 'OPTIONS') {
@@ -40,6 +44,10 @@ Deno.serve(async (req) => {
         }
 
         const api_key = Deno.env.get('SERP_API_KEY')
+        if (!api_key?.trim()) {
+            console.error('SerpAPI proxy env error: SERP_API_KEY is missing or empty');
+            return jsonResponse(503, { success: false, data: null, error: 'Service unavailable' });
+        }
 
         // Construct SerpApi URL with your hidden API key
         const params = new URLSearchParams({
@@ -47,7 +55,7 @@ Deno.serve(async (req) => {
             'engine': 'amazon',
             'device': 'mobile',
             'amazon_domain': 'amazon.ca',
-            'api_key': api_key!, // Keep this on the server!
+            'api_key': api_key, // Keep this on the server!
         })
 
         // Separate try/catch for fetch call
@@ -55,9 +63,13 @@ Deno.serve(async (req) => {
         let responseData: Record<string, unknown>;
         try {
             response = await fetch(`https://serpapi.com/search.json?${params.toString()}`)
+            if (!response.ok) {
+                console.error('SerpAPI HTTP error:', response.status, response.statusText);
+                return jsonResponse(503, { success: false, data: null, error: 'Service unavailable' });
+            }
             responseData = await response.json()
         } catch (fetchError) {
-            console.error('SerpAPI fetch error:', fetchError);
+            console.error('SerpAPI fetch error:', getErrorMessage(fetchError));
             return jsonResponse(503, { success: false, data: null, error: 'Service unavailable' });
         }
 
@@ -84,7 +96,7 @@ Deno.serve(async (req) => {
             return jsonResponse(200, { success: true, data: { results: [] }, error: null });
         }
     } catch (error) {
-        console.error('SerpAPI proxy error:', error);
+        console.error('SerpAPI proxy error:', getErrorMessage(error));
 
         // Check if it's a JSON parsing error (which means bad request body)
         if (error instanceof SyntaxError) {
