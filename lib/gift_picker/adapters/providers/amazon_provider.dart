@@ -1,12 +1,13 @@
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
 import 'package:gift_sense/gift_picker/adapters/providers/base_provider.dart';
 import 'package:gift_sense/gift_picker/models/search.dart';
 import 'package:gift_sense/core/supabase_service.dart';
 
-final randomizer = Random();
-
 class AmazonProvider implements BaseProvider {
+  static final _randomizer = Random();
+
   @override
   GiftSearchProvider get name => GiftSearchProvider.amazon;
 
@@ -14,29 +15,40 @@ class AmazonProvider implements BaseProvider {
   Future<List<GiftSearchItem>> search(List<String> ideas) async {
     try {
       if (ideas.isEmpty) return [];
-      int index = (randomizer.nextInt(ideas.length));
+      int index = (_randomizer.nextInt(ideas.length));
 
       final idea = ideas[index].replaceAll(' ', '+');
       final responseData = await callApi(idea);
       return parseResponse(responseData);
-      // return parseResponse(Map());
     } catch (e) {
-      print({'parent': 'AmazonProvider.search', 'error': e});
+      debugPrint('AmazonProvider.search failed: $e');
       return [];
     }
   }
 
   Future<Map<String, dynamic>> callApi(String query) async {
-    final response = await SupabaseService.client.functions.invoke(
-      'serp-amazon-search',
-      body: {'query': query},
-    );
-    return response.data as Map<String, dynamic>;
+    try {
+      final response = await SupabaseService.client.functions.invoke(
+        'serp-amazon-search',
+        body: {'query': query},
+      );
+      if (response.data is Map<String, dynamic>) {
+        return response.data as Map<String, dynamic>;
+      }
+      debugPrint('AmazonProvider.callApi: unexpected response type: ${response.data.runtimeType}');
+      return {};
+    } catch (e) {
+      debugPrint('AmazonProvider.callApi failed: $e');
+      return {};
+    }
   }
 
   List<GiftSearchItem> parseResponse(Map<String, dynamic> responseData) {
-    if (responseData['success'] == false) return [];
-    final links = responseData['results'] as List<dynamic>;
+    try {
+      if (responseData['success'] == false) return [];
+      final results = responseData['results'];
+      if (results is! List) return [];
+      final links = results;
     // final links = [
     //   {
     //     "position": 1,
@@ -140,25 +152,29 @@ class AmazonProvider implements BaseProvider {
     //   },
     // ];
 
-    return links
-        .map((link) {
-          final title = (link['title'] ?? link['brand'] ?? '').toString();
-          final price = (link['price'] ?? 'N/A').toString();
-          if (title.isEmpty || price == 'N/A') {
-            return null;
-          }
-          return GiftSearchItem(
-            title: title,
-            trimmedTitle: _trimTitle(title),
-            provider: name,
-            url: (link['link_clean']).toString(),
-            price: price,
-            ratings: (link['rating'] ?? '0').toString(),
-            reviews: link['reviews'] ?? 0,
-          );
-        })
-        .nonNulls
-        .toList();
+      return links
+          .map((link) {
+            final title = (link['title'] ?? link['brand'] ?? '').toString();
+            final price = (link['price'] ?? 'N/A').toString();
+            if (title.isEmpty || price == 'N/A') {
+              return null;
+            }
+            return GiftSearchItem(
+              title: title,
+              trimmedTitle: _trimTitle(title),
+              provider: name,
+              url: (link['link_clean']).toString(),
+              price: price,
+              ratings: (link['rating'] ?? '0').toString(),
+              reviews: link['reviews'] ?? 0,
+            );
+          })
+          .nonNulls
+          .toList();
+    } catch (e) {
+      debugPrint('AmazonProvider.parseResponse failed: $e');
+      return [];
+    }
   }
 
   String _trimTitle(String title) {

@@ -34,22 +34,22 @@
 ## Priority 3: Error Handling (Flutter App)
 > **Summary:** Add defensive error handling throughout the app. Errors should be caught and logged, not crash the app.
 
-- [ ] `supabase_service.dart`: Wrap `initialize()` and `signInAnonymously()` in try/catch
-  - No try/catch around `Supabase.initialize()` or `_ensureAnonymousSession()`.
+- [x] `supabase_service.dart`: Wrap `initialize()` and `signInAnonymously()` in try/catch
+  - Both `initialize()` and `_ensureAnonymousSession()` now wrapped in try/catch with `debugPrint` logging and rethrow.
 - [x] `base_adapter.dart`, `base_provider.dart`: Ensure methods are protected (already done for adapter)
-  - (Partial) `GeminiAiAdapter.getGiftIdeas` has try/catch. `AmazonProvider.search` has try/catch. However, `AmazonProvider.callApi` is **not** wrapped.
-- [ ] `gemini_adapter.dart`: Add try/catch to `callApi()`, safe cast, proper logging
-  - `callApi()` uses direct `response.data as Map<String, dynamic>` cast with no try/catch. `parseResponse` also uses unsafe `as` casts.
-- [ ] `amazon_provider.dart`: Add try/catch to `_callApi()`, safe cast, move randomizer inside class
-  - `callApi()` uses unsafe cast. `final randomizer = Random()` remains top-level (line 7), not inside the class.
-- [ ] `orchestrator.dart`: Add try/catch to `initialize()`, search loop, proper logging, use `Future.wait()`
-  - `initialize()` has no try/catch. Provider search loop is sequential with no error handling or `Future.wait()`.
-- [ ] `search_item.dart`: Wrap `launchUrl` in try/catch
-  - `_launchUrl()` throws `Exception` on failure instead of catching gracefully.
-- [ ] `main.dart`: Add try/catch to `SupabaseService.initialize()`
-  - `await SupabaseService.initialize()` is called without any try/catch in `main()`.
-- [ ] `app.dart`: Add try/catch/finally to `_validateInput()`, `getInstance`, `search`
-  - No try/catch/finally around the async search flow. A failure leaves `_isLoading = true` permanently.
+  - `GeminiAiAdapter.getGiftIdeas` has try/catch. `AmazonProvider.search` has try/catch. `AmazonProvider.callApi` now wrapped.
+- [x] `gemini_adapter.dart`: Add try/catch to `callApi()`, safe cast, proper logging
+  - `callApi()` wrapped in try/catch with safe `is` check before cast. `parseResponse()` wrapped in try/catch with safe type checks. `print` replaced with `debugPrint`.
+- [x] `amazon_provider.dart`: Add try/catch to `_callApi()`, safe cast, move randomizer inside class
+  - `callApi()` wrapped in try/catch with safe `is` check. `parseResponse()` wrapped in try/catch with safe `is` check for `results`. `randomizer` moved to `static final _randomizer` inside class. `print` replaced with `debugPrint`.
+- [x] `orchestrator.dart`: Add try/catch to `initialize()`, search loop, proper logging, use `Future.wait()`
+  - `initialize()` wrapped in try/catch (falls back to empty list). `search()` wrapped in try/catch. Sequential provider loop replaced with `Future.wait()`.
+- [x] `search_item.dart`: Wrap `launchUrl` in try/catch
+  - `_launchUrl()` now wrapped in try/catch. No longer throws on failure; logs via `debugPrint`.
+- [x] `main.dart`: Add try/catch to `SupabaseService.initialize()`
+  - `SupabaseService.initialize()` wrapped in try/catch. App still runs on failure (logged via `debugPrint`).
+- [x] `app.dart`: Add try/catch/finally to `_validateInput()`, `getInstance`, `search`
+  - Async search flow wrapped in try/catch/finally. `finally` resets `_isLoading = false` so UI never gets stuck.
 
 ---
 
@@ -77,3 +77,4 @@
 | 2026-02-11 | Priority 4 | Partially Complete |
 | 2026-02-12 | Priority 1 | Complete (partials left as-is) |
 | 2026-02-12 | Priority 4 | Complete (partials left as-is) |
+| 2026-02-12 | Priority 3 | Complete |

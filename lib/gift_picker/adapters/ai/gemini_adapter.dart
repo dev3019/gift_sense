@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:gift_sense/gift_picker/models/search.dart';
 import 'package:gift_sense/gift_picker/adapters/ai/base_adapter.dart';
 import 'package:gift_sense/core/supabase_service.dart';
@@ -21,9 +22,8 @@ class GeminiAiAdapter implements AiAdapter {
         "Tarkov BEAR Tactical",
         "RDR2 Arthur Morgan",
       ].map((ele) => "${ele.trim()} ${request.category.name}").toList();
-    } catch (error) {
-      // TODO: handle error
-      print({'parent': 'GeminiAiAdapter.getGiftIdeas', 'error': error});
+    } catch (e) {
+      debugPrint('GeminiAiAdapter.getGiftIdeas failed: $e');
       return [];
     }
   }
@@ -56,19 +56,35 @@ class GeminiAiAdapter implements AiAdapter {
 
   // make api call via Supabase edge function
   Future<Map<String, dynamic>> callApi(String prompt) async {
-    final response = await SupabaseService.client.functions.invoke(
-      'gemini-proxy',
-      body: {'prompt': prompt},
-    );
-    return response.data as Map<String, dynamic>;
+    try {
+      final response = await SupabaseService.client.functions.invoke(
+        'gemini-proxy',
+        body: {'prompt': prompt},
+      );
+      if (response.data is Map<String, dynamic>) {
+        return response.data as Map<String, dynamic>;
+      }
+      debugPrint('GeminiAiAdapter.callApi: unexpected response type: ${response.data.runtimeType}');
+      return {};
+    } catch (e) {
+      debugPrint('GeminiAiAdapter.callApi failed: $e');
+      return {};
+    }
   }
 
   // transform response to list of ideas
   List<String> parseResponse(Map<String, dynamic> responseData) {
-    if (responseData['success'] == false) return [];
-    final decodedResponse = responseData['text'] as String;
+    try {
+      if (responseData['success'] == false) return [];
+      final text = responseData['text'];
+      if (text is! String) return [];
 
-    final ideas = jsonDecode(decodedResponse) as List<dynamic>;
-    return ideas.map((idea) => idea.toString()).toList();
+      final decoded = jsonDecode(text);
+      if (decoded is! List) return [];
+      return decoded.map((idea) => idea.toString()).toList();
+    } catch (e) {
+      debugPrint('GeminiAiAdapter.parseResponse failed: $e');
+      return [];
+    }
   }
 }

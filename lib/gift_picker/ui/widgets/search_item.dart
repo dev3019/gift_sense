@@ -12,9 +12,13 @@ class SearchItem extends StatelessWidget {
   );
 
   Future<void> _launchUrl() async {
-    final Uri url = Uri.parse(gift.url);
-    if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
-      throw Exception('Could not launch $url');
+    try {
+      final Uri url = Uri.parse(gift.url);
+      if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+        debugPrint('SearchItem._launchUrl: Could not launch ${gift.url}');
+      }
+    } catch (e) {
+      debugPrint('SearchItem._launchUrl failed: $e');
     }
   }
 

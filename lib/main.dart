@@ -14,7 +14,11 @@ final theme = ThemeData(
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await SupabaseService.initialize();
+  try {
+    await SupabaseService.initialize();
+  } catch (e) {
+    debugPrint('main: SupabaseService.initialize failed: $e');
+  }
   runApp(
     MaterialApp(
       theme: theme,

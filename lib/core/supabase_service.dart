@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Initializes Supabase and ensures an anonymous session exists.
@@ -21,18 +22,27 @@ class SupabaseService {
       'SUPABASE_ANON_KEY not set. Run with --dart-define-from-file=config/dev.json',
     );
 
-    await Supabase.initialize(
-      url: _supabaseUrl,
-      anonKey: _supabaseAnonKey,
-    );
-
-    await _ensureAnonymousSession();
+    try {
+      await Supabase.initialize(
+        url: _supabaseUrl,
+        anonKey: _supabaseAnonKey,
+      );
+      await _ensureAnonymousSession();
+    } catch (e) {
+      debugPrint('SupabaseService.initialize failed: $e');
+      rethrow;
+    }
   }
 
   static Future<void> _ensureAnonymousSession() async {
-    final session = client.auth.currentSession;
-    if (session == null) {
-      await client.auth.signInAnonymously();
+    try {
+      final session = client.auth.currentSession;
+      if (session == null) {
+        await client.auth.signInAnonymously();
+      }
+    } catch (e) {
+      debugPrint('SupabaseService._ensureAnonymousSession failed: $e');
+      rethrow;
     }
   }
 

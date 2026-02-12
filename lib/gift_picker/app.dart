@@ -144,25 +144,27 @@ class _GiftPickerAppState extends State<GiftPickerApp> {
 
     setState(() => _isLoading = true);
 
-    final orchestrator = await GiftSearchOrchestrator.getInstance(
-      aiAdapter: GeminiAiAdapter(),
-      providers: [AmazonProvider()],
-    );
-    final result = await orchestrator.search(
-      GiftContext(
-        description: _giftContextController.text,
-        category: _selectedCategory!,
-        sex: _selectedSex!,
-        age: enteredAge,
-      ),
-    );
-    
-    setState(() {
-      _isLoading = false;
-      _searchResponse = result;
-    });
-    _openGiftOptionsOverlay(context);
-    // else save the gift
+    try {
+      final orchestrator = await GiftSearchOrchestrator.getInstance(
+        aiAdapter: GeminiAiAdapter(),
+        providers: [AmazonProvider()],
+      );
+      final result = await orchestrator.search(
+        GiftContext(
+          description: _giftContextController.text,
+          category: _selectedCategory!,
+          sex: _selectedSex!,
+          age: enteredAge,
+        ),
+      );
+
+      setState(() => _searchResponse = result);
+      _openGiftOptionsOverlay(context);
+    } catch (e) {
+      debugPrint('GiftPickerApp._validateInput search failed: $e');
+    } finally {
+      setState(() => _isLoading = false);
+    }
   }
 
   void _removeGiftContext(GiftContext ideaCtx) {

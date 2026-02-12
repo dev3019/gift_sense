@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:gift_sense/gift_picker/adapters/ai/base_adapter.dart';
 import 'package:gift_sense/gift_picker/adapters/providers/base_provider.dart';
 import 'package:gift_sense/gift_picker/models/search.dart';
@@ -29,33 +30,45 @@ class GiftSearchOrchestrator {
   }
 
   Future<void> initialize() async {
-    words = await StopWordies.getFor(locale: SWLocale.en);
+    try {
+      words = await StopWordies.getFor(locale: SWLocale.en);
+    } catch (e) {
+      debugPrint('GiftSearchOrchestrator.initialize failed: $e');
+      words = [];
+    }
   }
 
   Future<GiftSearchResponse> search(GiftContext request) async {
-    // normalize request
-    final normalizedText = _normalizeText(request.description);
+    try {
+      // normalize request
+      final normalizedText = _normalizeText(request.description);
 
-    // 1. Ask AI for ideas (mocked)
-    final ideas = await aiAdapter.getGiftIdeas(
-      GiftSearchRequest(
-        description: normalizedText,
-        category: request.category,
-        sex: request.sex,
-        age: request.age,
-      ),
-    );
+      // 1. Ask AI for ideas (mocked)
+      final ideas = await aiAdapter.getGiftIdeas(
+        GiftSearchRequest(
+          description: normalizedText,
+          category: request.category,
+          sex: request.sex,
+          age: request.age,
+        ),
+      );
 
-    // 2. Ask providers for links
-    final items = <GiftSearchItem>[];
-    if(ideas.isNotEmpty) {
-      for (final provider in providers) {
-        final providerItems = await provider.search(ideas);
-        items.addAll(providerItems);
+      // 2. Ask providers for links in parallel
+      final items = <GiftSearchItem>[];
+      if (ideas.isNotEmpty) {
+        final results = await Future.wait(
+          providers.map((p) => p.search(ideas)),
+        );
+        for (final providerItems in results) {
+          items.addAll(providerItems);
+        }
       }
-    }
 
-    return GiftSearchResponse(items: items);
+      return GiftSearchResponse(items: items);
+    } catch (e) {
+      debugPrint('GiftSearchOrchestrator.search failed: $e');
+      return GiftSearchResponse(items: []);
+    }
   }
 
   String _normalizeText(String text) {
