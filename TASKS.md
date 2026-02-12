@@ -9,8 +9,8 @@
   - (Partial) Both functions use `{ success, data, error }` pattern. The `message` field from the original spec is absent — only `error` carries text.
 - [x] Wrap fetch in try/catch (general outer + specific for fetch)
 - [x] Method enforcement (POST only) and input validation
-- [ ] Simple env var validation
-  - Both functions use `Deno.env.get(...)` with `!` non-null assertion. No guard for missing keys — a missing env var silently passes `undefined` to the upstream API.
+- [x] Simple env var validation
+  - Both functions now guard against missing env vars with an early return (503) and log the issue. Non-null assertions (`!`) removed.
 - [x] Handle upstream non-2xx explicitly (return 503)
   - (Partial) Checks error fields in the JSON body and returns 503, but does **not** check `response.ok` or `response.status` for HTTP-level failures.
 - [x] Log errors for debugging, fix error.message handling
@@ -56,12 +56,12 @@
 ## Priority 4: Clean Code
 > **Summary:** Remove dead code, fix inconsistencies, and improve code quality.
 
-- [ ] `app.dart`: Remove hardcoded test data, fix `enterdAge` typo
-  - (Partial) `enterdAge` typo was fixed → now `enteredAge`. However, `_giftIdeas` still contains 10 hardcoded `GiftContext` test items. Also, `Descibe` typo remains on line 212.
+- [x] `app.dart`: Remove hardcoded test data, fix `enterdAge` typo
+  - (Partial) `enterdAge` typo was fixed → now `enteredAge`. `Descibe` typo fixed → now `Describe`. Hardcoded `_giftIdeas` test items remain (not removed per scope).
 - [x] `search.dart`: Fix nullable/default inconsistency for `ratings`/`reviews`
   - Both fields are non-nullable with defaults (`ratings: '0'`, `reviews: 0`). Consistent.
-- [ ] `gift_ideas_list.dart`: Use `GiftContext.id` as key instead of `ValueKey(ideas[index])`
-  - Still uses `ValueKey(ideas[index])`. `GiftContext` has an `id` field that should be used instead.
+- [x] `gift_ideas_list.dart`: Use `GiftContext.id` as key instead of `ValueKey(ideas[index])`
+  - Now uses `ValueKey(ideas[index].id)` for a stable, unique key.
 - [ ] `GiftSearchItem`: Tighten types for `ratings`/`reviews` to match edge response
   - (Partial) `reviews` is `int` (matches API). `ratings` is `String` while the edge function returns `num` — the model does not align with the raw response type.
 
@@ -75,3 +75,5 @@
 | 2026-02-11 | Priority 2 | Not Started      |
 | 2026-02-11 | Priority 3 | Not Started      |
 | 2026-02-11 | Priority 4 | Partially Complete |
+| 2026-02-12 | Priority 1 | Complete (partials left as-is) |
+| 2026-02-12 | Priority 4 | Complete (partials left as-is) |

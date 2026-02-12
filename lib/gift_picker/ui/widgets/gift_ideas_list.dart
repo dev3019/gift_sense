@@ -17,7 +17,7 @@ class GiftIdeasList extends StatelessWidget {
     return ListView.builder(
       itemCount: ideas.length,
       itemBuilder: (BuildContext context, int index) => Dismissible(
-        key: ValueKey(ideas[index]),
+        key: ValueKey(ideas[index].id),
         child: GiftIdea(idea: ideas[index]),
         onDismissed: (direction) => onRemoveIdeaCtx(ideas[index]),
       ),

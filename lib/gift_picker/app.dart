@@ -209,7 +209,7 @@ class _GiftPickerAppState extends State<GiftPickerApp> {
                 controller: _giftContextController,
                 maxLength: 50,
                 decoration: InputDecoration(
-                  labelText: 'Descibe what you are looking for',
+                  labelText: 'Describe what you are looking for',
                 ),
               ),
               const SizedBox(height: 16),

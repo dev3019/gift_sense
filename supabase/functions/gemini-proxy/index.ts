@@ -39,7 +39,11 @@ Deno.serve(async (req) => {
             return jsonResponse(400, { success: false, data: null, error: 'Missing required parameter: prompt' });
         }
 
-        const api_key = Deno.env.get('GEMINI_API_KEY')
+        const api_key = Deno.env.get('GEMINI_API_KEY');
+        if (!api_key) {
+            console.error('Missing GEMINI_API_KEY environment variable');
+            return jsonResponse(503, { success: false, data: null, error: 'Service unavailable' });
+        }
 
         // Separate try/catch for fetch call
         let response: Response;
@@ -51,7 +55,7 @@ Deno.serve(async (req) => {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'x-goog-api-key': api_key!,
+                        'x-goog-api-key': api_key,
                     },
                     body: JSON.stringify({
                         contents: [

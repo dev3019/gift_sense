@@ -39,7 +39,11 @@ Deno.serve(async (req) => {
             return jsonResponse(400, { success: false, data: null, error: 'Missing required parameter: query' });
         }
 
-        const api_key = Deno.env.get('SERP_API_KEY')
+        const api_key = Deno.env.get('SERP_API_KEY');
+        if (!api_key) {
+            console.error('Missing SERP_API_KEY environment variable');
+            return jsonResponse(503, { success: false, data: null, error: 'Service unavailable' });
+        }
 
         // Construct SerpApi URL with your hidden API key
         const params = new URLSearchParams({
@@ -47,7 +51,7 @@ Deno.serve(async (req) => {
             'engine': 'amazon',
             'device': 'mobile',
             'amazon_domain': 'amazon.ca',
-            'api_key': api_key!, // Keep this on the server!
+            'api_key': api_key, // Keep this on the server!
         })
 
         // Separate try/catch for fetch call
