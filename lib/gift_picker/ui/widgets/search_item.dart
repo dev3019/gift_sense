@@ -11,10 +11,24 @@ class SearchItem extends StatelessWidget {
     fontWeight: FontWeight.bold,
   );
 
-  Future<void> _launchUrl() async {
-    final Uri url = Uri.parse(gift.url);
-    if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
-      throw Exception('Could not launch $url');
+  Future<void> _launchUrl(BuildContext context) async {
+    try {
+      final url = Uri.parse(gift.url);
+      final launched = await launchUrl(
+        url,
+        mode: LaunchMode.externalApplication,
+      );
+      if (!launched && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not open this link')),
+        );
+      }
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not open this link')),
+        );
+      }
     }
   }
 
@@ -49,7 +63,7 @@ class SearchItem extends StatelessWidget {
                   ],
                 ),
                 IconButton.outlined(
-                  onPressed: _launchUrl,
+                  onPressed: () => _launchUrl(context),
                   icon: Icon(Icons.link),
                 ),
               ],

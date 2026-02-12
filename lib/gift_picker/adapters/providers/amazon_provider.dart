@@ -1,12 +1,13 @@
 import 'dart:math';
+import 'dart:developer' as developer;
 
 import 'package:gift_sense/gift_picker/adapters/providers/base_provider.dart';
 import 'package:gift_sense/gift_picker/models/search.dart';
 import 'package:gift_sense/core/supabase_service.dart';
 
-final randomizer = Random();
-
 class AmazonProvider implements BaseProvider {
+  final Random _randomizer = Random();
+
   @override
   GiftSearchProvider get name => GiftSearchProvider.amazon;
 
@@ -14,29 +15,63 @@ class AmazonProvider implements BaseProvider {
   Future<List<GiftSearchItem>> search(List<String> ideas) async {
     try {
       if (ideas.isEmpty) return [];
-      int index = (randomizer.nextInt(ideas.length));
+      final index = _randomizer.nextInt(ideas.length);
 
       final idea = ideas[index].replaceAll(' ', '+');
       final responseData = await callApi(idea);
       return parseResponse(responseData);
       // return parseResponse(Map());
     } catch (e) {
-      print({'parent': 'AmazonProvider.search', 'error': e});
+      developer.log(
+        'Amazon provider search failed',
+        name: 'AmazonProvider.search',
+        error: e,
+      );
       return [];
     }
   }
 
+  @override
   Future<Map<String, dynamic>> callApi(String query) async {
-    final response = await SupabaseService.client.functions.invoke(
-      'serp-amazon-search',
-      body: {'query': query},
-    );
-    return response.data as Map<String, dynamic>;
+    try {
+      final response = await SupabaseService.client.functions.invoke(
+        'serp-amazon-search',
+        body: {'query': query},
+      );
+      final data = response.data;
+      if (data is Map<String, dynamic>) {
+        return data;
+      }
+
+      developer.log(
+        'Unexpected response payload type from serp-amazon-search',
+        name: 'AmazonProvider.callApi',
+        error: data.runtimeType.toString(),
+      );
+      return {};
+    } catch (error, stackTrace) {
+      developer.log(
+        'Amazon provider API call failed',
+        name: 'AmazonProvider.callApi',
+        error: error,
+        stackTrace: stackTrace,
+      );
+      return {};
+    }
   }
 
+  @override
   List<GiftSearchItem> parseResponse(Map<String, dynamic> responseData) {
     if (responseData['success'] == false) return [];
-    final links = responseData['results'] as List<dynamic>;
+    final results = responseData['results'];
+    if (results is! List) {
+      developer.log(
+        'Missing or invalid results payload',
+        name: 'AmazonProvider.parseResponse',
+      );
+      return [];
+    }
+    final links = results.whereType<Map<String, dynamic>>();
     // final links = [
     //   {
     //     "position": 1,

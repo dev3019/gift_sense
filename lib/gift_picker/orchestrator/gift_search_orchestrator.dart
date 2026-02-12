@@ -1,3 +1,5 @@
+import 'dart:developer' as developer;
+
 import 'package:gift_sense/gift_picker/adapters/ai/base_adapter.dart';
 import 'package:gift_sense/gift_picker/adapters/providers/base_provider.dart';
 import 'package:gift_sense/gift_picker/models/search.dart';
@@ -23,13 +25,34 @@ class GiftSearchOrchestrator {
         aiAdapter: aiAdapter,
         providers: providers,
       );
-      await _instance!.initialize();
+      try {
+        await _instance!.initialize();
+      } catch (error, stackTrace) {
+        developer.log(
+          'Failed to initialize GiftSearchOrchestrator singleton',
+          name: 'GiftSearchOrchestrator.getInstance',
+          error: error,
+          stackTrace: stackTrace,
+        );
+        _instance = null;
+        rethrow;
+      }
     }
     return _instance!;
   }
 
   Future<void> initialize() async {
-    words = await StopWordies.getFor(locale: SWLocale.en);
+    try {
+      words = await StopWordies.getFor(locale: SWLocale.en);
+    } catch (error, stackTrace) {
+      developer.log(
+        'Failed to load stop words',
+        name: 'GiftSearchOrchestrator.initialize',
+        error: error,
+        stackTrace: stackTrace,
+      );
+      rethrow;
+    }
   }
 
   Future<GiftSearchResponse> search(GiftContext request) async {
@@ -37,20 +60,45 @@ class GiftSearchOrchestrator {
     final normalizedText = _normalizeText(request.description);
 
     // 1. Ask AI for ideas (mocked)
-    final ideas = await aiAdapter.getGiftIdeas(
-      GiftSearchRequest(
-        description: normalizedText,
-        category: request.category,
-        sex: request.sex,
-        age: request.age,
-      ),
-    );
+    List<String> ideas = [];
+    try {
+      ideas = await aiAdapter.getGiftIdeas(
+        GiftSearchRequest(
+          description: normalizedText,
+          category: request.category,
+          sex: request.sex,
+          age: request.age,
+        ),
+      );
+    } catch (error, stackTrace) {
+      developer.log(
+        'AI adapter failed to generate gift ideas',
+        name: 'GiftSearchOrchestrator.search',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
 
     // 2. Ask providers for links
     final items = <GiftSearchItem>[];
-    if(ideas.isNotEmpty) {
-      for (final provider in providers) {
-        final providerItems = await provider.search(ideas);
+    if (ideas.isNotEmpty) {
+      final providerResults = await Future.wait(
+        providers.map((provider) async {
+          try {
+            return await provider.search(ideas);
+          } catch (error, stackTrace) {
+            developer.log(
+              'Provider search failed: ${provider.name.name}',
+              name: 'GiftSearchOrchestrator.search',
+              error: error,
+              stackTrace: stackTrace,
+            );
+            return <GiftSearchItem>[];
+          }
+        }),
+      );
+
+      for (final providerItems in providerResults) {
         items.addAll(providerItems);
       }
     }

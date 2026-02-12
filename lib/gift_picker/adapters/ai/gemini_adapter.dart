@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:developer' as developer;
 
 import 'package:gift_sense/gift_picker/models/search.dart';
 import 'package:gift_sense/gift_picker/adapters/ai/base_adapter.dart';
@@ -9,6 +10,7 @@ class GeminiAiAdapter implements AiAdapter {
   Future<List<String>> getGiftIdeas(GiftSearchRequest request) async {
     try {
       final finishedPrompt = createPrompt(request);
+      if (finishedPrompt.isEmpty) return [];
       // final response = await callApi(finishedPrompt);
       // final ideas = parseResponse(
       //   response,
@@ -22,13 +24,17 @@ class GeminiAiAdapter implements AiAdapter {
         "RDR2 Arthur Morgan",
       ].map((ele) => "${ele.trim()} ${request.category.name}").toList();
     } catch (error) {
-      // TODO: handle error
-      print({'parent': 'GeminiAiAdapter.getGiftIdeas', 'error': error});
+      developer.log(
+        'Failed to build gift ideas',
+        name: 'GeminiAiAdapter.getGiftIdeas',
+        error: error,
+      );
       return [];
     }
   }
 
   // convert request to prompt
+  @override
   String createPrompt(GiftSearchRequest request) {
     return '''You are a recommendation engine for gift ideas.
 
@@ -55,20 +61,67 @@ class GeminiAiAdapter implements AiAdapter {
   }
 
   // make api call via Supabase edge function
+  @override
   Future<Map<String, dynamic>> callApi(String prompt) async {
-    final response = await SupabaseService.client.functions.invoke(
-      'gemini-proxy',
-      body: {'prompt': prompt},
-    );
-    return response.data as Map<String, dynamic>;
+    try {
+      final response = await SupabaseService.client.functions.invoke(
+        'gemini-proxy',
+        body: {'prompt': prompt},
+      );
+      final data = response.data;
+      if (data is Map<String, dynamic>) {
+        return data;
+      }
+
+      developer.log(
+        'Unexpected response payload type from gemini-proxy',
+        name: 'GeminiAiAdapter.callApi',
+        error: data.runtimeType.toString(),
+      );
+      return {};
+    } catch (error, stackTrace) {
+      developer.log(
+        'Gemini API call failed',
+        name: 'GeminiAiAdapter.callApi',
+        error: error,
+        stackTrace: stackTrace,
+      );
+      return {};
+    }
   }
 
   // transform response to list of ideas
+  @override
   List<String> parseResponse(Map<String, dynamic> responseData) {
     if (responseData['success'] == false) return [];
-    final decodedResponse = responseData['text'] as String;
+    final text = responseData['text'];
+    if (text is! String) {
+      developer.log(
+        'Missing or invalid text response payload',
+        name: 'GeminiAiAdapter.parseResponse',
+      );
+      return [];
+    }
 
-    final ideas = jsonDecode(decodedResponse) as List<dynamic>;
-    return ideas.map((idea) => idea.toString()).toList();
+    try {
+      final decoded = jsonDecode(text);
+      if (decoded is! List) {
+        developer.log(
+          'Gemini response JSON is not a list',
+          name: 'GeminiAiAdapter.parseResponse',
+        );
+        return [];
+      }
+
+      return decoded.map((idea) => idea.toString()).toList();
+    } catch (error, stackTrace) {
+      developer.log(
+        'Failed to parse Gemini response JSON',
+        name: 'GeminiAiAdapter.parseResponse',
+        error: error,
+        stackTrace: stackTrace,
+      );
+      return [];
+    }
   }
 }

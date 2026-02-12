@@ -1,3 +1,5 @@
+import 'dart:developer' as developer;
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:gift_sense/gift_picker/app.dart';
@@ -14,11 +16,44 @@ final theme = ThemeData(
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await SupabaseService.initialize();
+  Object? initializationError;
+  try {
+    await SupabaseService.initialize();
+  } catch (error, stackTrace) {
+    initializationError = error;
+    developer.log(
+      'App initialization failed',
+      name: 'main',
+      error: error,
+      stackTrace: stackTrace,
+    );
+  }
+
   runApp(
     MaterialApp(
       theme: theme,
-      home: const GiftPickerApp(),
+      home: initializationError == null
+          ? const GiftPickerApp()
+          : const _InitializationErrorScreen(),
     ),
   );
+}
+
+class _InitializationErrorScreen extends StatelessWidget {
+  const _InitializationErrorScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      body: Center(
+        child: Padding(
+          padding: EdgeInsets.all(24),
+          child: Text(
+            'Unable to initialize the app right now. Please check your configuration and try again.',
+            textAlign: TextAlign.center,
+          ),
+        ),
+      ),
+    );
+  }
 }

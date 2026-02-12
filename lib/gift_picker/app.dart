@@ -1,3 +1,5 @@
+import 'dart:developer' as developer;
+
 import 'package:flutter/material.dart';
 import 'package:gift_sense/gift_picker/adapters/ai/gemini_adapter.dart';
 import 'package:gift_sense/gift_picker/adapters/providers/amazon_provider.dart';
@@ -144,24 +146,46 @@ class _GiftPickerAppState extends State<GiftPickerApp> {
 
     setState(() => _isLoading = true);
 
-    final orchestrator = await GiftSearchOrchestrator.getInstance(
-      aiAdapter: GeminiAiAdapter(),
-      providers: [AmazonProvider()],
-    );
-    final result = await orchestrator.search(
-      GiftContext(
-        description: _giftContextController.text,
-        category: _selectedCategory!,
-        sex: _selectedSex!,
-        age: enteredAge,
-      ),
-    );
-    
-    setState(() {
-      _isLoading = false;
-      _searchResponse = result;
-    });
-    _openGiftOptionsOverlay(context);
+    try {
+      final orchestrator = await GiftSearchOrchestrator.getInstance(
+        aiAdapter: GeminiAiAdapter(),
+        providers: [AmazonProvider()],
+      );
+      final result = await orchestrator.search(
+        GiftContext(
+          description: _giftContextController.text,
+          category: _selectedCategory!,
+          sex: _selectedSex!,
+          age: enteredAge,
+        ),
+      );
+
+      if (!mounted) return;
+      setState(() {
+        _searchResponse = result;
+      });
+      _openGiftOptionsOverlay(context);
+    } catch (error, stackTrace) {
+      developer.log(
+        'Gift search flow failed',
+        name: '_GiftPickerAppState._validateInput',
+        error: error,
+        stackTrace: stackTrace,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Something went wrong. Please try again.'),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
     // else save the gift
   }
 
